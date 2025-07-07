@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ユーザー登録 - 症状チェッカー</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">症状チェッカー</h1>
+            <div class="space-x-4">
+                <a href="/" class="hover:text-blue-200">ホーム</a>
+                <a href="/symptom" class="hover:text-blue-200">症状チェック</a>
+                <a href="/hospital" class="hover:text-blue-200">病院検索</a>
+                <a href="/user/register" class="hover:text-blue-200 font-semibold">ユーザー登録</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">ユーザー登録</h2>
+                
+                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 class="font-semibold text-blue-800 mb-2">ユーザー登録のメリット</h3>
+                    <ul class="text-sm text-blue-700 space-y-1">
+                        <li>• 病院からの最新情報やお知らせを受け取れます</li>
+                        <li>• 季節の健康情報や予防情報を配信します</li>
+                        <li>• 過去の症状チェック履歴を保存できます</li>
+                        <li>• お気に入りの病院を登録できます</li>
+                    </ul>
+                </div>
+
+                <div id="error-message" class="hidden"></div>
+                <div id="success-message" class="hidden"></div>
+
+                <form id="user-registration-form" class="space-y-6">
+                    <!-- 基本情報 -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">基本情報</h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label for="email" class="form-label">メールアドレス *</label>
+                                <input type="email" id="email" name="email" class="form-input" required placeholder="example@email.com">
+                            </div>
+                            
+                            <div>
+                                <label for="name" class="form-label">お名前 *</label>
+                                <input type="text" id="name" name="name" class="form-input" required placeholder="山田 太郎">
+                            </div>
+                            
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="age" class="form-label">年齢</label>
+                                    <input type="number" id="age" name="age" class="form-input" min="0" max="120" placeholder="30">
+                                </div>
+                                
+                                <div>
+                                    <label for="gender" class="form-label">性別</label>
+                                    <select id="gender" name="gender" class="form-input">
+                                        <option value="">選択してください</option>
+                                        <option value="male">男性</option>
+                                        <option value="female">女性</option>
+                                        <option value="other">その他</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label for="phone" class="form-label">電話番号</label>
+                                <input type="tel" id="phone" name="phone" class="form-input" placeholder="090-1234-5678">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 通知設定 -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-semibold mb-4">通知設定</h3>
+                        <p class="text-sm text-gray-600 mb-4">受け取りたい情報を選択してください</p>
+                        
+                        <div class="space-y-3" id="notification-preferences">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="notification_preferences" value="hospital_news" class="mr-3" checked>
+                                <div>
+                                    <div class="font-medium">病院からのお知らせ</div>
+                                    <div class="text-sm text-gray-600">医療機関からの重要な通知や案内</div>
+                                </div>
+                            </label>
+                            
+                            <label class="flex items-center">
+                                <input type="checkbox" name="notification_preferences" value="health_info" class="mr-3" checked>
+                                <div>
+                                    <div class="font-medium">健康情報・予防情報</div>
+                                    <div class="text-sm text-gray-600">季節の健康管理やインフルエンザ流行情報など</div>
+                                </div>
+                            </label>
+                            
+                            <label class="flex items-center">
+                                <input type="checkbox" name="notification_preferences" value="appointment_reminder" class="mr-3">
+                                <div>
+                                    <div class="font-medium">予約リマインダー</div>
+                                    <div class="text-sm text-gray-600">病院の予約確認や通院リマインダー</div>
+                                </div>
+                            </label>
+                            
+                            <label class="flex items-center">
+                                <input type="checkbox" name="notification_preferences" value="emergency_alert" class="mr-3" checked>
+                                <div>
+                                    <div class="font-medium">緊急時のアラート</div>
+                                    <div class="text-sm text-gray-600">災害時の医療情報や緊急避難情報</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 利用規約 -->
+                    <div class="border-t pt-6">
+                        <label class="flex items-start">
+                            <input type="checkbox" id="terms-agreement" class="mr-3 mt-1" required>
+                            <div class="text-sm">
+                                <a href="/terms" target="_blank" class="text-blue-600 hover:underline">利用規約</a>および
+                                <a href="/privacy" target="_blank" class="text-blue-600 hover:underline">プライバシーポリシー</a>に同意します *
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn-primary text-lg px-8 py-3">
+                            ユーザー登録
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 既存ユーザー向け -->
+            <div class="mt-6 text-center">
+                <p class="text-gray-600">
+                    すでにアカウントをお持ちの場合は 
+                    <a href="/user/login" class="text-blue-600 hover:underline">ログイン</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('user-registration-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            registerUser();
+        });
+
+        function registerUser() {
+            const form = document.getElementById('user-registration-form');
+            const formData = new FormData(form);
+            
+            // 通知設定を配列として収集
+            const notificationPrefs = [];
+            const checkedBoxes = form.querySelectorAll('input[name="notification_preferences"]:checked');
+            checkedBoxes.forEach(checkbox => {
+                notificationPrefs.push(checkbox.value);
+            });
+            
+            const registrationData = {
+                email: formData.get('email'),
+                name: formData.get('name'),
+                age: formData.get('age') ? parseInt(formData.get('age')) : null,
+                gender: formData.get('gender') || null,
+                phone: formData.get('phone') || null,
+                notification_preferences: notificationPrefs
+            };
+            
+            hideError();
+            hideSuccess();
+            
+            // フォームボタンを無効化
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<div class="loading"></div> 登録中...';
+            submitBtn.disabled = true;
+            
+            fetch('/api/v1/users/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(registrationData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    showRegistrationSuccess(data);
+                }
+            })
+            .catch(error => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                showError('ユーザー登録中にエラーが発生しました: ' + error.message);
+            });
+        }
+
+        function showRegistrationSuccess(userData) {
+            const successHTML = `
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                    <h4 class="font-semibold mb-2">ユーザー登録が完了しました！</h4>
+                    <p class="text-sm">ようこそ、${userData.name}さん。登録いただいたメールアドレスに確認メールを送信しました。</p>
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <h4 class="font-semibold text-blue-800 mb-2">次のステップ</h4>
+                    <div class="space-y-2 text-sm text-blue-700">
+                        <div class="flex items-center">
+                            <span class="mr-2">✉️</span>
+                            <span>メール認証を完了してください</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="mr-2">🔍</span>
+                            <span>症状チェック機能をお試しください</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="mr-2">🏥</span>
+                            <span>お気に入りの病院を登録しましょう</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center space-y-4">
+                    <button onclick="window.location.href='/user/profile'" class="btn-primary">
+                        プロフィールを確認
+                    </button>
+                    <br>
+                    <a href="/symptom" class="text-blue-600 hover:underline">
+                        症状チェックを始める
+                    </a>
+                </div>
+            `;
+            
+            document.getElementById('user-registration-form').innerHTML = successHTML;
+            
+            // 成功メッセージにスクロール
+            document.getElementById('user-registration-form').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.innerHTML = `
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    ${message}
+                </div>
+            `;
+            errorDiv.classList.remove('hidden');
+            errorDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideError() {
+            document.getElementById('error-message').classList.add('hidden');
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            successDiv.innerHTML = `
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                    ${message}
+                </div>
+            `;
+            successDiv.classList.remove('hidden');
+        }
+
+        function hideSuccess() {
+            document.getElementById('success-message').classList.add('hidden');
+        }
+
+        // フォームバリデーション
+        document.getElementById('email').addEventListener('blur', function() {
+            const email = this.value;
+            if (email && !isValidEmail(email)) {
+                showError('有効なメールアドレスを入力してください');
+            } else {
+                hideError();
+            }
+        });
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // 電話番号フォーマット
+        document.getElementById('phone').addEventListener('input', function() {
+            let value = this.value.replace(/[^\d]/g, '');
+            if (value.length >= 7) {
+                if (value.length <= 10) {
+                    value = value.replace(/(\d{3})(\d{4})(\d{0,3})/, '$1-$2-$3');
+                } else {
+                    value = value.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+                }
+            }
+            this.value = value;
+        });
+    </script>
+    
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

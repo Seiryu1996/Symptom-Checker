@@ -1,0 +1,57 @@
+databases:
+  - name: symptom-checker-db
+    databaseName: symptom_checker
+    user: symptom_user
+    plan: free
+
+services:
+  - type: web
+    name: symptom-checker-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: symptom-checker-db
+          property: connectionString
+      - key: FASTAPI_HOST
+        value: 0.0.0.0
+      - key: FASTAPI_PORT
+        fromService:
+          type: web
+          name: symptom-checker-backend
+          property: port
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: DEBUG
+        value: false
+      - key: CORS_ORIGINS
+        value: https://symptom-checker-frontend.onrender.com,http://localhost:3000
+
+  - type: web
+    name: symptom-checker-frontend
+    env: go
+    plan: free
+    buildCommand: go build -o main ./cmd/main.go
+    startCommand: ./main
+    envVars:
+      - key: GO_HOST
+        value: 0.0.0.0
+      - key: GO_PORT
+        fromService:
+          type: web
+          name: symptom-checker-frontend
+          property: port
+      - key: BACKEND_URL
+        fromService:
+          type: web
+          name: symptom-checker-backend
+          property: host
+      - key: DEBUG
+        value: false

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>病院詳細 - 症状チェッカー</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">症状チェッカー</h1>
+            <div class="space-x-4">
+                <a href="/" class="hover:text-blue-200">ホーム</a>
+                <a href="/symptom" class="hover:text-blue-200">症状チェック</a>
+                <a href="/hospital" class="hover:text-blue-200">病院検索</a>
+                <a href="/user/register" class="hover:text-blue-200">ユーザー登録</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="mb-4">
+                <button onclick="history.back()" class="text-blue-600 hover:text-blue-800">
+                    ← 戻る
+                </button>
+            </div>
+            
+            <div id="hospital-detail" class="bg-white rounded-lg shadow-lg p-8">
+                <div class="text-center">
+                    <div class="loading"></div>
+                    <p>病院情報を読み込み中...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const hospitalId = "{{.hospitalID}}";
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHospitalDetail();
+        });
+
+        function loadHospitalDetail() {
+            fetch(`/api/v1/hospitals/${hospitalId}`)
+                .then(response => response.json())
+                .then(hospital => {
+                    displayHospitalDetail(hospital);
+                })
+                .catch(error => {
+                    console.error('病院詳細の取得に失敗しました:', error);
+                    document.getElementById('hospital-detail').innerHTML = `
+                        <div class="text-center p-8">
+                            <div class="text-4xl mb-4">❌</div>
+                            <h3 class="text-lg font-semibold mb-2">病院情報の取得に失敗しました</h3>
+                            <p class="text-gray-600 mb-4">しばらく時間をおいてからお試しください。</p>
+                            <button onclick="history.back()" class="btn-primary">戻る</button>
+                        </div>
+                    `;
+                });
+        }
+
+        function displayHospitalDetail(hospital) {
+            const distance = hospital.distance ? `${hospital.distance.toFixed(1)}km` : '';
+            const rating = hospital.rating ? `⭐ ${hospital.rating.toFixed(1)}` : '';
+            const emergencyBadge = hospital.emergency ? '<span class="bg-red-100 text-red-800 px-3 py-1 rounded-full">緊急対応可能</span>' : '';
+            
+            const html = `
+                <div class="space-y-6">
+                    <!-- 病院基本情報 -->
+                    <div class="text-center border-b pb-6">
+                        <h2 class="text-2xl font-bold mb-2">${hospital.name}</h2>
+                        <div class="flex justify-center items-center space-x-4 text-sm text-gray-600">
+                            ${distance ? `<span class="flex items-center"><span class="text-blue-500 mr-1">📍</span>${distance}</span>` : ''}
+                            ${rating ? `<span class="flex items-center"><span class="text-yellow-500 mr-1">⭐</span>${rating}</span>` : ''}
+                            ${emergencyBadge}
+                        </div>
+                    </div>
+
+                    <!-- アクション ボタン -->
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <button class="btn-success text-lg py-4" onclick="callHospital('${hospital.phone}')">
+                            📞 電話する
+                        </button>
+                        <button class="btn-secondary text-lg py-4" onclick="showHospitalMap(${hospital.location.latitude}, ${hospital.location.longitude}, '${hospital.name}')">
+                            🗺️ 地図で見る
+                        </button>
+                        ${hospital.website ? `<a href="${hospital.website}" target="_blank" class="btn-primary text-lg py-4 text-center">🌐 ウェブサイト</a>` : '<div></div>'}
+                    </div>
+
+                    <!-- 病院詳細情報 -->
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- 基本情報 -->
+                        <div class="card">
+                            <h3 class="text-lg font-semibold mb-4">基本情報</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <strong class="text-gray-700">住所:</strong>
+                                    <p class="text-gray-600">${hospital.location.address}</p>
+                                </div>
+                                <div>
+                                    <strong class="text-gray-700">電話番号:</strong>
+                                    <p class="text-gray-600">
+                                        <a href="tel:${hospital.phone}" class="text-blue-600 hover:underline">
+                                            ${hospital.phone}
+                                        </a>
+                                    </p>
+                                </div>
+                                ${hospital.website ? `
+                                <div>
+                                    <strong class="text-gray-700">ウェブサイト:</strong>
+                                    <p class="text-gray-600">
+                                        <a href="${hospital.website}" target="_blank" class="text-blue-600 hover:underline">
+                                            ${hospital.website}
+                                        </a>
+                                    </p>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- 診療科 -->
+                        <div class="card">
+                            <h3 class="text-lg font-semibold mb-4">診療科</h3>
+                            <div class="flex flex-wrap gap-2">
+                                ${hospital.specialties.map(specialty => 
+                                    `<span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">${specialty}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 営業時間 -->
+                    <div class="card">
+                        <h3 class="text-lg font-semibold mb-4">営業時間</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${hospital.hours ? hospital.hours.map(hours => `
+                                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span class="font-medium">${hours.day}曜日</span>
+                                    <span class="${hours.is_closed ? 'text-red-600' : 'text-gray-600'}">
+                                        ${hours.is_closed ? '休診' : `${hours.open_time} - ${hours.close_time}`}
+                                    </span>
+                                </div>
+                            `).join('') : '<p class="text-gray-600">営業時間の詳細は病院にお問い合わせください。</p>'}
+                        </div>
+                    </div>
+
+                    <!-- 地図 -->
+                    <div class="card">
+                        <h3 class="text-lg font-semibold mb-4">アクセス</h3>
+                        <div class="aspect-w-16 aspect-h-9 bg-gray-200 rounded-lg mb-4">
+                            <iframe 
+                                width="100%" 
+                                height="300" 
+                                frameborder="0" 
+                                style="border:0" 
+                                src="https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${hospital.location.latitude},${hospital.location.longitude}"
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                        <div class="text-center">
+                            <button class="btn-secondary" onclick="getDirections(${hospital.location.latitude}, ${hospital.location.longitude})">
+                                📍 ルートを検索
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 注意事項 -->
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-yellow-800 mb-2">ご注意</h4>
+                        <ul class="text-sm text-yellow-700 space-y-1">
+                            <li>• 診療時間や休診日は変更される場合があります。受診前に必ずお電話でご確認ください。</li>
+                            <li>• 緊急時は119番通報または最寄りの救急病院をご利用ください。</li>
+                            <li>• 初診の場合は、健康保険証をお持ちください。</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('hospital-detail').innerHTML = html;
+        }
+
+        function callHospital(phoneNumber) {
+            if (confirm(`${phoneNumber} に電話をかけますか？`)) {
+                window.location.href = `tel:${phoneNumber}`;
+            }
+        }
+
+        function showHospitalMap(latitude, longitude, hospitalName) {
+            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}&query_place_id=${encodeURIComponent(hospitalName)}`;
+            window.open(mapUrl, '_blank');
+        }
+
+        function getDirections(latitude, longitude) {
+            const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+            window.open(directionsUrl, '_blank');
+        }
+    </script>
+    
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

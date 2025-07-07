@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>症状チェック - 症状チェッカー</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">症状チェッカー</h1>
+            <div class="space-x-4">
+                <a href="/" class="hover:text-blue-200">ホーム</a>
+                <a href="/symptom" class="hover:text-blue-200 font-semibold">症状チェック</a>
+                <a href="/hospital" class="hover:text-blue-200">病院検索</a>
+                <a href="/user/register" class="hover:text-blue-200">ユーザー登録</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">症状チェック</h2>
+                
+                <div id="error-message" class="hidden"></div>
+                <div id="success-message" class="hidden"></div>
+
+                <!-- 症状入力フォーム -->
+                <form id="symptom-form" class="space-y-6">
+                    <!-- 症状入力方法選択 -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-4">症状の入力方法を選択してください</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="symptom-input-method border-2 border-blue-200 rounded-lg p-4 cursor-pointer" onclick="selectInputMethod('text')">
+                                <div class="text-center">
+                                    <div class="text-3xl mb-2">✏️</div>
+                                    <h4 class="font-semibold">自由入力</h4>
+                                    <p class="text-sm text-gray-600">症状を自由に文章で入力</p>
+                                </div>
+                            </div>
+                            <div class="symptom-input-method border-2 border-gray-200 rounded-lg p-4 cursor-pointer" onclick="selectInputMethod('category')">
+                                <div class="text-center">
+                                    <div class="text-3xl mb-2">📋</div>
+                                    <h4 class="font-semibold">選択式</h4>
+                                    <p class="text-sm text-gray-600">カテゴリから症状を選択</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 自由入力エリア -->
+                    <div id="text-input-area" class="space-y-4">
+                        <div>
+                            <label for="symptom-text" class="form-label">症状の詳細を入力してください</label>
+                            <textarea 
+                                id="symptom-text" 
+                                name="text" 
+                                rows="4" 
+                                class="form-input" 
+                                placeholder="例：頭痛がひどくて、吐き気もあります。昨日の夜から続いています。"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <!-- カテゴリ選択エリア -->
+                    <div id="category-input-area" class="space-y-4 hidden">
+                        <div>
+                            <label class="form-label">症状のカテゴリを選択してください</label>
+                            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {{range .categories.categories}}
+                                <div class="symptom-category" onclick="selectSymptomCategory(this, '{{.name}}')">
+                                    <div class="text-center">
+                                        <div class="text-2xl mb-1">{{.icon}}</div>
+                                        <span class="font-semibold">{{.name}}</span>
+                                    </div>
+                                </div>
+                                {{end}}
+                            </div>
+                        </div>
+
+                        <!-- 選択したカテゴリの詳細症状 -->
+                        <div id="detailed-symptoms" class="hidden">
+                            <label class="form-label">具体的な症状を選択してください</label>
+                            <div id="symptom-suggestions" class="space-y-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- 追加情報 -->
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="severity" class="form-label">症状の重さ（1-5）</label>
+                            <select id="severity" name="severity" class="form-input">
+                                <option value="">選択してください</option>
+                                <option value="1">1 - 軽い</option>
+                                <option value="2">2 - やや軽い</option>
+                                <option value="3">3 - 普通</option>
+                                <option value="4">4 - 重い</option>
+                                <option value="5">5 - 非常に重い</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="duration" class="form-label">症状の期間</label>
+                            <select id="duration" name="duration" class="form-input">
+                                <option value="">選択してください</option>
+                                <option value="数時間">数時間</option>
+                                <option value="半日">半日</option>
+                                <option value="1日">1日</option>
+                                <option value="2-3日">2-3日</option>
+                                <option value="1週間">1週間</option>
+                                <option value="2週間以上">2週間以上</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="location" class="form-label">症状の部位（任意）</label>
+                        <input type="text" id="location" name="location" class="form-input" placeholder="例：頭、腹、胸など">
+                    </div>
+
+                    <!-- 患者情報 -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-semibold mb-4">患者情報（任意）</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="patient-age" class="form-label">年齢</label>
+                                <input type="number" id="patient-age" name="patient_age" class="form-input" min="0" max="120" placeholder="年齢">
+                            </div>
+                            <div>
+                                <label for="patient-gender" class="form-label">性別</label>
+                                <select id="patient-gender" name="patient_gender" class="form-input">
+                                    <option value="">選択してください</option>
+                                    <option value="male">男性</option>
+                                    <option value="female">女性</option>
+                                    <option value="other">その他</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn-primary text-lg px-8 py-3">
+                            症状を分析する
+                        </button>
+                    </div>
+                </form>
+
+                <!-- 結果表示エリア -->
+                <div id="symptom-result" class="mt-8"></div>
+                <div id="diagnosis-result" class="mt-8"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let selectedInputMethod = 'text';
+        let selectedCategory = '';
+
+        function selectInputMethod(method) {
+            selectedInputMethod = method;
+            
+            // UI更新
+            document.querySelectorAll('.symptom-input-method').forEach(el => {
+                el.classList.remove('border-blue-500', 'bg-blue-50');
+                el.classList.add('border-gray-200');
+            });
+            
+            const selectedElement = event.target.closest('.symptom-input-method');
+            selectedElement.classList.add('border-blue-500', 'bg-blue-50');
+            selectedElement.classList.remove('border-gray-200');
+            
+            // 入力エリア表示切り替え
+            if (method === 'text') {
+                document.getElementById('text-input-area').classList.remove('hidden');
+                document.getElementById('category-input-area').classList.add('hidden');
+            } else {
+                document.getElementById('text-input-area').classList.add('hidden');
+                document.getElementById('category-input-area').classList.remove('hidden');
+            }
+        }
+
+        function selectSymptomCategory(element, category) {
+            selectedCategory = category;
+            
+            // カテゴリ選択状態を更新
+            document.querySelectorAll('.symptom-category').forEach(el => {
+                el.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            
+            // 詳細症状を取得
+            fetchSymptomSuggestions(category);
+            
+            // 症状テキストを設定
+            document.getElementById('symptom-text').value = category + 'の症状';
+        }
+
+        function fetchSymptomSuggestions(category) {
+            fetch(`/api/v1/symptoms/suggestions?category=${encodeURIComponent(category)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const suggestionsContainer = document.getElementById('symptom-suggestions');
+                    suggestionsContainer.innerHTML = '';
+                    
+                    data.forEach(suggestion => {
+                        const div = document.createElement('div');
+                        div.className = 'symptom-suggestion border border-gray-200 rounded p-3 cursor-pointer hover:bg-gray-50';
+                        div.innerHTML = `
+                            <div class="flex items-center">
+                                <input type="checkbox" class="mr-2" value="${suggestion.text}" onchange="updateSymptomText()">
+                                <span>${suggestion.text}</span>
+                                ${suggestion.common ? '<span class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">よくある</span>' : ''}
+                            </div>
+                        `;
+                        suggestionsContainer.appendChild(div);
+                    });
+                    
+                    document.getElementById('detailed-symptoms').classList.remove('hidden');
+                })
+                .catch(error => {
+                    console.error('症状候補の取得に失敗しました:', error);
+                });
+        }
+
+        function updateSymptomText() {
+            const checkedBoxes = document.querySelectorAll('#symptom-suggestions input[type="checkbox"]:checked');
+            const symptoms = Array.from(checkedBoxes).map(cb => cb.value);
+            
+            if (symptoms.length > 0) {
+                document.getElementById('symptom-text').value = symptoms.join('、') + 'の症状があります';
+            } else {
+                document.getElementById('symptom-text').value = selectedCategory + 'の症状';
+            }
+        }
+
+        // フォーム送信
+        document.getElementById('symptom-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const symptomText = document.getElementById('symptom-text').value;
+            if (!symptomText) {
+                showError('症状を入力してください');
+                return;
+            }
+            
+            // 症状解析
+            submitSymptomForm();
+        });
+
+        function submitSymptomForm() {
+            const formData = new FormData(document.getElementById('symptom-form'));
+            
+            showLoading('symptom-result');
+            hideError();
+            
+            fetch('/symptom/input', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading('symptom-result');
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    displaySymptomResult(data);
+                    // 自動的に診断を実行
+                    proceedToDiagnosis(data);
+                }
+            })
+            .catch(error => {
+                hideLoading('symptom-result');
+                showError('症状の処理中にエラーが発生しました: ' + error.message);
+            });
+        }
+
+        function displaySymptomResult(data) {
+            const resultDiv = document.getElementById('symptom-result');
+            
+            const html = `
+                <div class="card bg-blue-50 border-blue-200">
+                    <h3 class="text-lg font-semibold mb-4 text-blue-800">症状解析結果</h3>
+                    <div class="space-y-2">
+                        <p><strong>症状:</strong> ${data.text}</p>
+                        <p><strong>カテゴリ:</strong> ${data.category}</p>
+                        ${data.severity ? `<p><strong>重症度:</strong> ${data.severity}/5</p>` : ''}
+                        ${data.duration ? `<p><strong>期間:</strong> ${data.duration}</p>` : ''}
+                        ${data.location ? `<p><strong>部位:</strong> ${data.location}</p>` : ''}
+                        <p><strong>キーワード:</strong> ${data.keywords.join(', ')}</p>
+                    </div>
+                </div>
+            `;
+            
+            resultDiv.innerHTML = html;
+            
+            // 結果エリアにスクロール
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function proceedToDiagnosis(symptomData) {
+            showLoading('diagnosis-result');
+            
+            const diagnosisData = {
+                symptoms: [symptomData.text],
+                patient_age: document.getElementById('patient-age').value || null,
+                patient_gender: document.getElementById('patient-gender').value || null,
+                duration: symptomData.duration || null,
+                severity: symptomData.severity || null
+            };
+            
+            fetch('/diagnosis/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(diagnosisData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading('diagnosis-result');
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    displayDiagnosisResult(data);
+                }
+            })
+            .catch(error => {
+                hideLoading('diagnosis-result');
+                showError('診断処理中にエラーが発生しました: ' + error.message);
+            });
+        }
+
+        function displayDiagnosisResult(data) {
+            const resultDiv = document.getElementById('diagnosis-result');
+            
+            const urgencyClass = data.urgency_level === 'high' ? 'urgency-high' : 
+                                data.urgency_level === 'medium' ? 'urgency-medium' : 'urgency-low';
+            
+            const urgencyText = data.urgency_level === 'high' ? '高' : 
+                               data.urgency_level === 'medium' ? '中' : '低';
+            
+            let specialtiesHtml = '';
+            if (data.recommended_specialties && data.recommended_specialties.length > 0) {
+                specialtiesHtml = data.recommended_specialties.map(specialty => `
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 mb-3">
+                        <h4 class="font-semibold text-lg mb-2">${specialty.name}</h4>
+                        <p class="text-gray-600 mb-3">${specialty.description}</p>
+                        <button class="btn-success" onclick="searchHospitalsBySpecialty('${specialty.name}')">
+                            ${specialty.name}の病院を検索
+                        </button>
+                    </div>
+                `).join('');
+            }
+            
+            const html = `
+                <div class="card">
+                    <h3 class="text-xl font-bold mb-6 text-center">診断結果</h3>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-3 text-lg">考えられる症状・疾患</h4>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <ul class="space-y-1">
+                                ${data.possible_conditions.map(condition => `<li class="flex items-center"><span class="text-blue-500 mr-2">•</span>${condition}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-3 text-lg">推奨される診療科</h4>
+                        ${specialtiesHtml}
+                    </div>
+                    
+                    <div class="mb-6 p-4 rounded-lg ${urgencyClass}">
+                        <h4 class="font-semibold mb-2 text-lg">緊急度: ${urgencyText}</h4>
+                        <p class="text-sm">${data.advice}</p>
+                        <p class="text-xs mt-2">信頼度: ${Math.round(data.confidence * 100)}%</p>
+                    </div>
+                    
+                    <div class="text-center space-y-4">
+                        <button class="btn-success text-lg px-6 py-3" onclick="window.location.href='/hospital'">
+                            病院を検索する
+                        </button>
+                        <div class="text-sm text-gray-600">
+                            <p>※ この診断結果は参考情報です。心配な症状がある場合は、必ず医療機関にご相談ください。</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            resultDiv.innerHTML = html;
+            
+            // 結果エリアにスクロール
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function searchHospitalsBySpecialty(specialty) {
+            window.location.href = `/hospital?specialty=${encodeURIComponent(specialty)}`;
+        }
+
+        // 初期設定
+        document.addEventListener('DOMContentLoaded', function() {
+            selectInputMethod('text');
+        });
+    </script>
+    
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

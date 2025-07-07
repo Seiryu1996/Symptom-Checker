@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>病院検索 - 症状チェッカー</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">症状チェッカー</h1>
+            <div class="space-x-4">
+                <a href="/" class="hover:text-blue-200">ホーム</a>
+                <a href="/symptom" class="hover:text-blue-200">症状チェック</a>
+                <a href="/hospital" class="hover:text-blue-200 font-semibold">病院検索</a>
+                <a href="/user/register" class="hover:text-blue-200">ユーザー登録</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">病院検索</h2>
+                
+                <div id="error-message" class="hidden"></div>
+                <div id="success-message" class="hidden"></div>
+
+                <!-- 検索フォーム -->
+                <form id="hospital-search-form" class="space-y-6 mb-8">
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- 診療科選択 -->
+                        <div>
+                            <label class="form-label">診療科を選択</label>
+                            <select id="specialty" name="specialty" class="form-input">
+                                <option value="">すべての診療科</option>
+                                <option value="内科">内科</option>
+                                <option value="外科">外科</option>
+                                <option value="小児科">小児科</option>
+                                <option value="整形外科">整形外科</option>
+                                <option value="皮膚科">皮膚科</option>
+                                <option value="眼科">眼科</option>
+                                <option value="耳鼻咽喉科">耳鼻咽喉科</option>
+                                <option value="神経内科">神経内科</option>
+                                <option value="脳神経外科">脳神経外科</option>
+                                <option value="婦人科">婦人科</option>
+                                <option value="泌尿器科">泌尿器科</option>
+                                <option value="呼吸器科">呼吸器科</option>
+                                <option value="消化器科">消化器科</option>
+                                <option value="循環器科">循環器科</option>
+                                <option value="精神科">精神科</option>
+                            </select>
+                        </div>
+
+                        <!-- 検索範囲 -->
+                        <div>
+                            <label for="max-distance" class="form-label">検索範囲</label>
+                            <select id="max-distance" name="max_distance" class="form-input">
+                                <option value="5">5km以内</option>
+                                <option value="10" selected>10km以内</option>
+                                <option value="20">20km以内</option>
+                                <option value="50">50km以内</option>
+                            </select>
+                        </div>
+
+                        <!-- 緊急対応 -->
+                        <div>
+                            <label class="form-label">条件</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="emergency-only" name="emergency_only" class="mr-2">
+                                    <span>緊急対応可能のみ</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="open-now" name="open_now" class="mr-2">
+                                    <span>現在営業中のみ</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 位置情報 -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-semibold mb-4">検索位置</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <button type="button" id="get-location-btn" class="btn-primary w-full mb-2">
+                                    📍 現在地を取得
+                                </button>
+                                <input type="hidden" id="latitude" name="latitude">
+                                <input type="hidden" id="longitude" name="longitude">
+                                <div id="location-status" class="text-sm text-gray-600"></div>
+                            </div>
+                            <div>
+                                <label for="address" class="form-label">または住所を入力</label>
+                                <input type="text" id="address" name="address" class="form-input" placeholder="例：東京都渋谷区">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn-primary text-lg px-8 py-3">
+                            🔍 病院を検索
+                        </button>
+                    </div>
+                </form>
+
+                <!-- 検索結果 -->
+                <div id="search-results" class="space-y-4"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let userLocation = null;
+
+        // 現在地取得
+        document.getElementById('get-location-btn').addEventListener('click', function() {
+            const statusDiv = document.getElementById('location-status');
+            statusDiv.innerHTML = '<div class="loading"></div> 位置情報を取得中...';
+            
+            getCurrentLocation()
+                .then(position => {
+                    userLocation = position;
+                    document.getElementById('latitude').value = position.latitude;
+                    document.getElementById('longitude').value = position.longitude;
+                    statusDiv.innerHTML = '✅ 位置情報を取得しました';
+                    statusDiv.className = 'text-sm text-green-600';
+                })
+                .catch(error => {
+                    console.error('位置情報取得エラー:', error);
+                    statusDiv.innerHTML = '❌ 位置情報の取得に失敗しました';
+                    statusDiv.className = 'text-sm text-red-600';
+                });
+        });
+
+        // 病院検索フォーム送信
+        document.getElementById('hospital-search-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            searchHospitals();
+        });
+
+        function searchHospitals() {
+            const form = document.getElementById('hospital-search-form');
+            const formData = new FormData(form);
+            
+            // 選択された診療科を配列に変換
+            const specialty = formData.get('specialty');
+            const specialties = specialty ? [specialty] : [];
+            
+            const searchParams = {
+                specialties: specialties,
+                max_distance: parseFloat(formData.get('max_distance')),
+                emergency_only: formData.get('emergency_only') === 'on'
+            };
+            
+            // 位置情報がある場合は追加
+            if (userLocation) {
+                searchParams.user_location = {
+                    latitude: userLocation.latitude,
+                    longitude: userLocation.longitude,
+                    address: formData.get('address') || ''
+                };
+            }
+            
+            const resultsDiv = document.getElementById('search-results');
+            resultsDiv.innerHTML = '<div class="text-center"><div class="loading"></div> 病院を検索中...</div>';
+            
+            fetch('/hospital/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(searchParams)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showError(data.error);
+                    resultsDiv.innerHTML = '';
+                } else {
+                    displaySearchResults(data);
+                }
+            })
+            .catch(error => {
+                showError('病院検索中にエラーが発生しました: ' + error.message);
+                resultsDiv.innerHTML = '';
+            });
+        }
+
+        function displaySearchResults(hospitals) {
+            const resultsDiv = document.getElementById('search-results');
+            
+            if (hospitals.length === 0) {
+                resultsDiv.innerHTML = `
+                    <div class="text-center p-8 bg-gray-50 rounded-lg">
+                        <div class="text-4xl mb-4">🏥</div>
+                        <h3 class="text-lg font-semibold mb-2">検索結果が見つかりませんでした</h3>
+                        <p class="text-gray-600">検索条件を変更してお試しください。</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const resultsHTML = `
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold">検索結果（${hospitals.length}件）</h3>
+                </div>
+                ${hospitals.map(hospital => createHospitalCard(hospital)).join('')}
+            `;
+            
+            resultsDiv.innerHTML = resultsHTML;
+        }
+
+        function createHospitalCard(hospital) {
+            const distance = hospital.distance ? `${hospital.distance.toFixed(1)}km` : '';
+            const rating = hospital.rating ? `⭐ ${hospital.rating.toFixed(1)}` : '';
+            const emergencyBadge = hospital.emergency ? '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">緊急対応</span>' : '';
+            
+            return `
+                <div class="hospital-card bg-white">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h4 class="text-lg font-semibold mb-1">${hospital.name}</h4>
+                            <p class="text-gray-600 text-sm mb-2">📍 ${hospital.location.address}</p>
+                            <div class="flex items-center space-x-2 text-sm">
+                                ${distance ? `<span class="text-blue-600">📍 ${distance}</span>` : ''}
+                                ${rating ? `<span class="text-yellow-600">${rating}</span>` : ''}
+                                ${emergencyBadge}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <button class="btn-success mb-2" onclick="callHospital('${hospital.phone}')">
+                                📞 電話する
+                            </button>
+                            <br>
+                            <button class="btn-secondary text-sm" onclick="showHospitalMap(${hospital.location.latitude}, ${hospital.location.longitude}, '${hospital.name}')">
+                                🗺️ 地図
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong class="text-sm">診療科：</strong>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            ${hospital.specialties.map(specialty => 
+                                `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${specialty}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong class="text-sm">営業時間：</strong>
+                        <div class="text-sm text-gray-600">
+                            ${hospital.hours ? formatHospitalHours(hospital.hours) : '詳細は病院にお問い合わせください'}
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-600">
+                            📞 ${hospital.phone}
+                        </div>
+                        <div class="space-x-2">
+                            ${hospital.website ? `<a href="${hospital.website}" target="_blank" class="text-blue-600 hover:underline text-sm">ウェブサイト</a>` : ''}
+                            <a href="/hospital/${hospital.id}" class="text-blue-600 hover:underline text-sm">詳細を見る</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatHospitalHours(hours) {
+            const today = new Date().getDay();
+            const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+            
+            // 今日の営業時間を表示
+            const todayHours = hours.find(h => h.day === dayNames[today]);
+            if (todayHours) {
+                if (todayHours.is_closed) {
+                    return `今日（${dayNames[today]}）：休診`;
+                } else {
+                    return `今日（${dayNames[today]}）：${todayHours.open_time} - ${todayHours.close_time}`;
+                }
+            }
+            
+            return '営業時間は病院にお問い合わせください';
+        }
+
+        function callHospital(phoneNumber) {
+            if (confirm(`${phoneNumber} に電話をかけますか？`)) {
+                window.location.href = `tel:${phoneNumber}`;
+            }
+        }
+
+        function showHospitalMap(latitude, longitude, hospitalName) {
+            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}&query_place_id=${encodeURIComponent(hospitalName)}`;
+            window.open(mapUrl, '_blank');
+        }
+
+        // URLパラメータから診療科を取得して自動検索
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const specialty = urlParams.get('specialty');
+            
+            if (specialty) {
+                document.getElementById('specialty').value = specialty;
+                // 位置情報を取得してから自動検索
+                getCurrentLocation()
+                    .then(position => {
+                        userLocation = position;
+                        document.getElementById('latitude').value = position.latitude;
+                        document.getElementById('longitude').value = position.longitude;
+                        searchHospitals();
+                    })
+                    .catch(error => {
+                        // 位置情報が取得できなくても検索実行
+                        searchHospitals();
+                    });
+            }
+        });
+    </script>
+    
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
