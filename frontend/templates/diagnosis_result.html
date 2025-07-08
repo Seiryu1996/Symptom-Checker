@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>診断結果 - 症状チェッカー</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="nav-container">
+                <h1><a href="/">症状チェッカー</a></h1>
+                <ul>
+                    <li><a href="/">ホーム</a></li>
+                    <li><a href="/symptom">症状チェック</a></li>
+                    <li><a href="/hospital">病院検索</a></li>
+                    <li><a href="/news">健康ニュース</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="diagnosis-result">
+                <h2>診断結果</h2>
+                
+                <div class="result-summary">
+                    <div class="confidence-score">
+                        <h3>信頼度スコア</h3>
+                        <div class="score-circle">
+                            <span id="confidence-percentage">{{.ConfidenceScore}}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="urgency-level">
+                        <h3>緊急度</h3>
+                        <span class="urgency-badge {{.UrgencyLevel}}">{{.UrgencyLevelText}}</span>
+                    </div>
+                </div>
+
+                <div class="diagnosis-details">
+                    <h3>推定される病気・症状</h3>
+                    <div class="diagnosis-card">
+                        <h4>{{.DiagnosisName}}</h4>
+                        <p>{{.DiagnosisDescription}}</p>
+                        <div class="icd-code">
+                            <strong>ICD-10コード:</strong> {{.ICDCode}}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="symptoms-analysis">
+                    <h3>症状分析</h3>
+                    <div class="symptoms-list">
+                        {{range .Symptoms}}
+                        <div class="symptom-item">
+                            <span class="symptom-name">{{.Name}}</span>
+                            <span class="severity-badge severity-{{.Severity}}">重要度: {{.Severity}}/10</span>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+
+                <div class="ai-analysis">
+                    <h3>AI分析結果</h3>
+                    <div class="analysis-content">
+                        <p>{{.AIAnalysis}}</p>
+                    </div>
+                </div>
+
+                <div class="recommendations">
+                    <h3>推奨される対応</h3>
+                    <div class="recommendation-list">
+                        {{range .RecommendedActions}}
+                        <div class="recommendation-item">
+                            <i class="icon-{{.Type}}"></i>
+                            <p>{{.Description}}</p>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+
+                <div class="suggested-specialties">
+                    <h3>推奨診療科</h3>
+                    <div class="specialty-list">
+                        {{range .RecommendedSpecialties}}
+                        <span class="specialty-badge">{{.}}</span>
+                        {{end}}
+                    </div>
+                </div>
+
+                <div class="follow-up">
+                    <h3>フォローアップ</h3>
+                    <p>{{.FollowUpDays}}日後に症状の変化を確認することをお勧めします。</p>
+                </div>
+
+                <div class="actions">
+                    <a href="/hospital" class="btn btn-primary">近くの病院を探す</a>
+                    <a href="/symptom" class="btn btn-secondary">別の症状をチェック</a>
+                    <button onclick="printResult()" class="btn btn-outline">結果を印刷</button>
+                </div>
+
+                <div class="disclaimer">
+                    <p><strong>免責事項:</strong> この診断結果は医療診断ではありません。症状が続く場合や悪化する場合は、必ず医療機関を受診してください。</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 症状チェッカー. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        function printResult() {
+            window.print();
+        }
+
+        // 信頼度スコアのアニメーション
+        document.addEventListener('DOMContentLoaded', function() {
+            const scoreElement = document.getElementById('confidence-percentage');
+            const targetScore = parseInt(scoreElement.textContent);
+            let currentScore = 0;
+            
+            const interval = setInterval(() => {
+                if (currentScore >= targetScore) {
+                    clearInterval(interval);
+                } else {
+                    currentScore += 1;
+                    scoreElement.textContent = currentScore + '%';
+                }
+            }, 20);
+        });
+    </script>
+</body>
+</html>

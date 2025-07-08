@@ -43,6 +43,7 @@ func main() {
 
 	// 静的ファイルとテンプレートを設定
 	router.Static("/static", "./static")
+	router.StaticFile("/favicon.ico", "./static/favicon.ico")
 	router.LoadHTMLGlob("templates/*")
 
 	// ルートを設定

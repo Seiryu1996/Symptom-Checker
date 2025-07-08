@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロフィール - 症状チェッカー</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="nav-container">
+                <h1><a href="/">症状チェッカー</a></h1>
+                <ul>
+                    <li><a href="/">ホーム</a></li>
+                    <li><a href="/symptom">症状チェック</a></li>
+                    <li><a href="/hospital">病院検索</a></li>
+                    <li><a href="/news">健康ニュース</a></li>
+                    <li><a href="/user/profile" class="active">プロフィール</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="profile-container">
+                <h2>マイプロフィール</h2>
+                
+                <div class="profile-tabs">
+                    <button class="tab-btn active" onclick="showTab('basic')">基本情報</button>
+                    <button class="tab-btn" onclick="showTab('medical')">医療情報</button>
+                    <button class="tab-btn" onclick="showTab('history')">診断履歴</button>
+                    <button class="tab-btn" onclick="showTab('settings')">設定</button>
+                </div>
+
+                <!-- 基本情報タブ -->
+                <div id="basic-tab" class="tab-content active">
+                    <form id="basic-info-form" onsubmit="updateBasicInfo(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="full-name">氏名 *</label>
+                                <input type="text" id="full-name" name="fullName" value="{{.User.FullName}}" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email">メールアドレス *</label>
+                                <input type="email" id="email" name="email" value="{{.User.Email}}" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="phone">電話番号</label>
+                                <input type="tel" id="phone" name="phoneNumber" value="{{.User.PhoneNumber}}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="birth-date">生年月日</label>
+                                <input type="date" id="birth-date" name="birthDate" value="{{.User.BirthDate}}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="gender">性別</label>
+                                <select id="gender" name="gender">
+                                    <option value="">選択してください</option>
+                                    <option value="male" {{if eq .User.Gender "male"}}selected{{end}}>男性</option>
+                                    <option value="female" {{if eq .User.Gender "female"}}selected{{end}}>女性</option>
+                                    <option value="other" {{if eq .User.Gender "other"}}selected{{end}}>その他</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label for="address">住所</label>
+                                <textarea id="address" name="address" rows="3">{{.User.Address}}</textarea>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">更新</button>
+                    </form>
+                </div>
+
+                <!-- 医療情報タブ -->
+                <div id="medical-tab" class="tab-content">
+                    <form id="medical-info-form" onsubmit="updateMedicalInfo(event)">
+                        <div class="form-group">
+                            <label for="medical-history">既往歴</label>
+                            <textarea id="medical-history" name="medicalHistory" rows="4" placeholder="過去の病気や手術歴などを記入してください">{{.User.MedicalHistory}}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="allergies">アレルギー</label>
+                            <textarea id="allergies" name="allergies" rows="3" placeholder="アレルギーがある場合は記入してください">{{.User.Allergies}}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="medications">現在服用中の薬</label>
+                            <textarea id="medications" name="medications" rows="3" placeholder="現在服用している薬があれば記入してください">{{.User.Medications}}</textarea>
+                        </div>
+                        
+                        <h4>緊急連絡先</h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="emergency-name">緊急連絡先氏名</label>
+                                <input type="text" id="emergency-name" name="emergencyContactName" value="{{.User.EmergencyContactName}}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="emergency-phone">緊急連絡先電話番号</label>
+                                <input type="tel" id="emergency-phone" name="emergencyContactPhone" value="{{.User.EmergencyContactPhone}}">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">更新</button>
+                    </form>
+                </div>
+
+                <!-- 診断履歴タブ -->
+                <div id="history-tab" class="tab-content">
+                    <div class="diagnosis-history">
+                        <h3>過去の診断結果</h3>
+                        {{if .DiagnosisHistory}}
+                        <div class="history-list">
+                            {{range .DiagnosisHistory}}
+                            <div class="history-item">
+                                <div class="history-date">{{.Date}}</div>
+                                <div class="history-content">
+                                    <h4>{{.DiagnosisName}}</h4>
+                                    <p class="confidence">信頼度: {{.ConfidenceScore}}%</p>
+                                    <p class="urgency urgency-{{.UrgencyLevel}}">緊急度: {{.UrgencyLevelText}}</p>
+                                </div>
+                                <div class="history-actions">
+                                    <a href="/diagnosis/{{.ID}}" class="btn btn-sm">詳細</a>
+                                </div>
+                            </div>
+                            {{end}}
+                        </div>
+                        {{else}}
+                        <p class="no-history">まだ診断履歴がありません。</p>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- 設定タブ -->
+                <div id="settings-tab" class="tab-content">
+                    <form id="settings-form" onsubmit="updateSettings(event)">
+                        <h3>通知設定</h3>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="emailNotifications" {{if .User.EmailNotifications}}checked{{end}}>
+                                メール通知を受け取る
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="healthAlerts" {{if .User.HealthAlerts}}checked{{end}}>
+                                健康アラートを受け取る
+                            </label>
+                        </div>
+                        
+                        <h3>プライバシー設定</h3>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="shareDataForResearch" {{if .User.ShareDataForResearch}}checked{{end}}>
+                                匿名化されたデータを研究目的で共有することに同意する
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">設定を保存</button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <h3>パスワード変更</h3>
+                    <form id="password-form" onsubmit="changePassword(event)">
+                        <div class="form-group">
+                            <label for="current-password">現在のパスワード</label>
+                            <input type="password" id="current-password" name="currentPassword" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="new-password">新しいパスワード</label>
+                            <input type="password" id="new-password" name="newPassword" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="confirm-password">新しいパスワード（確認）</label>
+                            <input type="password" id="confirm-password" name="confirmPassword" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-secondary">パスワードを変更</button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <h3>アカウント削除</h3>
+                    <p>アカウントを削除すると、すべてのデータが完全に削除されます。この操作は取り消すことができません。</p>
+                    <button onclick="confirmDeleteAccount()" class="btn btn-danger">アカウントを削除</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 症状チェッカー. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        function showTab(tabName) {
+            // すべてのタブコンテンツを非表示
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // すべてのタブボタンを非アクティブ
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 選択されたタブを表示
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function updateBasicInfo(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData);
+            
+            fetch('/api/v1/users/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('基本情報が更新されました');
+            })
+            .catch(error => {
+                alert('更新に失敗しました: ' + error.message);
+            });
+        }
+
+        function updateMedicalInfo(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData);
+            
+            fetch('/api/v1/users/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('医療情報が更新されました');
+            })
+            .catch(error => {
+                alert('更新に失敗しました: ' + error.message);
+            });
+        }
+
+        function updateSettings(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData);
+            
+            fetch('/api/v1/users/settings', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('設定が保存されました');
+            })
+            .catch(error => {
+                alert('保存に失敗しました: ' + error.message);
+            });
+        }
+
+        function changePassword(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData);
+            
+            if (data.newPassword !== data.confirmPassword) {
+                alert('新しいパスワードが一致しません');
+                return;
+            }
+            
+            fetch('/api/v1/users/password', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    currentPassword: data.currentPassword,
+                    newPassword: data.newPassword
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('パスワードが変更されました');
+                event.target.reset();
+            })
+            .catch(error => {
+                alert('パスワード変更に失敗しました: ' + error.message);
+            });
+        }
+
+        function confirmDeleteAccount() {
+            if (confirm('本当にアカウントを削除しますか？この操作は取り消すことができません。')) {
+                if (confirm('すべてのデータが完全に削除されます。続行しますか？')) {
+                    fetch('/api/v1/users/account', {
+                        method: 'DELETE'
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            alert('アカウントが削除されました');
+                            window.location.href = '/';
+                        } else {
+                            alert('アカウント削除に失敗しました');
+                        }
+                    })
+                    .catch(error => {
+                        alert('削除に失敗しました: ' + error.message);
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+</html>

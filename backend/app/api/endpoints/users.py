@@ -1,28 +1,48 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
+from app.database import get_db
+from app.services.user_service import UserService
+from app.auth.dependencies import get_current_active_user
+from app.models.user import User
+
 router = APIRouter()
-security = HTTPBearer(auto_error=False)
 
 class UserRegistration(BaseModel):
     email: EmailStr
-    name: str
-    age: Optional[int] = None
+    password: str
+    full_name: str
+    phone_number: Optional[str] = None
+    birth_date: Optional[datetime] = None
     gender: Optional[str] = None
-    phone: Optional[str] = None
-    notification_preferences: Optional[List[str]] = []
+    address: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    medical_history: Optional[str] = None
+    allergies: Optional[str] = None
+    medications: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
 class UserProfile(BaseModel):
-    id: str
+    id: int
     email: EmailStr
-    name: str
-    age: Optional[int]
+    full_name: str
+    phone_number: Optional[str]
+    birth_date: Optional[datetime]
     gender: Optional[str]
-    phone: Optional[str]
-    notification_preferences: List[str]
+    address: Optional[str]
+    emergency_contact_name: Optional[str]
+    emergency_contact_phone: Optional[str]
+    medical_history: Optional[str]
+    allergies: Optional[str]
+    medications: Optional[str]
+    is_verified: bool
     created_at: datetime
     updated_at: datetime
 
@@ -32,105 +52,99 @@ class NotificationPreference(BaseModel):
     description: str
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = None
-    age: Optional[int] = None
+    full_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    birth_date: Optional[datetime] = None
     gender: Optional[str] = None
-    phone: Optional[str] = None
-    notification_preferences: Optional[List[str]] = None
+    address: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    medical_history: Optional[str] = None
+    allergies: Optional[str] = None
+    medications: Optional[str] = None
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """
-    現在のユーザーを取得する（認証チェック）
-    実際の実装では、JWTトークンの検証を行う
-    """
-    if not credentials:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="認証が必要です",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # 実際の実装では、トークンの検証とユーザー情報の取得を行う
-    # ここではサンプルユーザーを返す
-    return {"user_id": "user_123", "email": "user@example.com"}
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+@router.post("/login")
+async def login_user(user_login: UserLogin, db: Session = Depends(get_db)):
+    """ユーザーログインエンドポイント"""
+    user_service = UserService(db)
+    return user_service.login(user_login.email, user_login.password)
 
 @router.post("/register", response_model=UserProfile)
-async def register_user(user_data: UserRegistration):
-    """
-    ユーザー登録エンドポイント
-    """
-    try:
-        # 実際の実装では、データベースにユーザーを作成
-        # ここではサンプルレスポンスを返す
-        user_profile = UserProfile(
-            id=f"user_{hash(user_data.email)}",
-            email=user_data.email,
-            name=user_data.name,
-            age=user_data.age,
-            gender=user_data.gender,
-            phone=user_data.phone,
-            notification_preferences=user_data.notification_preferences or [],
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-        
-        return user_profile
+async def register_user(user_data: UserRegistration, db: Session = Depends(get_db)):
+    """ユーザー登録エンドポイント"""
+    user_service = UserService(db)
+    user = user_service.create_user(user_data.dict())
     
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"ユーザー登録中にエラーが発生しました: {str(e)}")
+    return UserProfile(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        phone_number=user.phone_number,
+        birth_date=user.birth_date,
+        gender=user.gender,
+        address=user.address,
+        emergency_contact_name=user.emergency_contact_name,
+        emergency_contact_phone=user.emergency_contact_phone,
+        medical_history=user.medical_history,
+        allergies=user.allergies,
+        medications=user.medications,
+        is_verified=user.is_verified,
+        created_at=user.created_at,
+        updated_at=user.updated_at
+    )
 
 @router.get("/profile", response_model=UserProfile)
-async def get_user_profile(current_user: dict = Depends(get_current_user)):
-    """
-    ユーザープロフィールを取得するエンドポイント
-    """
-    try:
-        # 実際の実装では、データベースからユーザー情報を取得
-        # ここではサンプルデータを返す
-        user_profile = UserProfile(
-            id=current_user["user_id"],
-            email=current_user["email"],
-            name="テストユーザー",
-            age=30,
-            gender="その他",
-            phone="080-1234-5678",
-            notification_preferences=["病院からのお知らせ", "健康情報"],
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-        
-        return user_profile
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"プロフィール取得中にエラーが発生しました: {str(e)}")
+async def get_user_profile(current_user: User = Depends(get_current_active_user)):
+    """ユーザープロフィールを取得するエンドポイント"""
+    return UserProfile(
+        id=current_user.id,
+        email=current_user.email,
+        full_name=current_user.full_name,
+        phone_number=current_user.phone_number,
+        birth_date=current_user.birth_date,
+        gender=current_user.gender,
+        address=current_user.address,
+        emergency_contact_name=current_user.emergency_contact_name,
+        emergency_contact_phone=current_user.emergency_contact_phone,
+        medical_history=current_user.medical_history,
+        allergies=current_user.allergies,
+        medications=current_user.medications,
+        is_verified=current_user.is_verified,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at
+    )
 
 @router.put("/profile", response_model=UserProfile)
 async def update_user_profile(
     user_update: UserUpdate,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
-    """
-    ユーザープロフィールを更新するエンドポイント
-    """
-    try:
-        # 実際の実装では、データベースのユーザー情報を更新
-        # ここではサンプルデータを返す
-        updated_profile = UserProfile(
-            id=current_user["user_id"],
-            email=current_user["email"],
-            name=user_update.name or "テストユーザー",
-            age=user_update.age or 30,
-            gender=user_update.gender or "その他",
-            phone=user_update.phone or "080-1234-5678",
-            notification_preferences=user_update.notification_preferences or ["病院からのお知らせ"],
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-        
-        return updated_profile
+    """ユーザープロフィールを更新するエンドポイント"""
+    user_service = UserService(db)
+    updated_user = user_service.update_user(current_user.id, user_update.dict(exclude_unset=True))
     
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"プロフィール更新中にエラーが発生しました: {str(e)}")
+    return UserProfile(
+        id=updated_user.id,
+        email=updated_user.email,
+        full_name=updated_user.full_name,
+        phone_number=updated_user.phone_number,
+        birth_date=updated_user.birth_date,
+        gender=updated_user.gender,
+        address=updated_user.address,
+        emergency_contact_name=updated_user.emergency_contact_name,
+        emergency_contact_phone=updated_user.emergency_contact_phone,
+        medical_history=updated_user.medical_history,
+        allergies=updated_user.allergies,
+        medications=updated_user.medications,
+        is_verified=updated_user.is_verified,
+        created_at=updated_user.created_at,
+        updated_at=updated_user.updated_at
+    )
 
 @router.get("/notification-preferences", response_model=List[NotificationPreference])
 async def get_notification_preferences():
@@ -162,15 +176,27 @@ async def get_notification_preferences():
     
     return preferences
 
+@router.put("/password")
+async def change_password(
+    password_change: PasswordChange,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """パスワードを変更するエンドポイント"""
+    user_service = UserService(db)
+    user_service.change_password(
+        current_user.id, 
+        password_change.current_password, 
+        password_change.new_password
+    )
+    return {"message": "パスワードが正常に変更されました"}
+
 @router.delete("/account")
-async def delete_user_account(current_user: dict = Depends(get_current_user)):
-    """
-    ユーザーアカウントを削除するエンドポイント
-    """
-    try:
-        # 実際の実装では、データベースからユーザーを削除
-        # ここではサンプルレスポンスを返す
-        return {"message": "アカウントが正常に削除されました"}
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"アカウント削除中にエラーが発生しました: {str(e)}")
+async def delete_user_account(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """ユーザーアカウントを削除するエンドポイント"""
+    user_service = UserService(db)
+    user_service.delete_user(current_user.id)
+    return {"message": "アカウントが正常に削除されました"}

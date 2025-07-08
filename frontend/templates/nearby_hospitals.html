@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>近くの病院 - 症状チェッカー</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="nav-container">
+                <h1><a href="/">症状チェッカー</a></h1>
+                <ul>
+                    <li><a href="/">ホーム</a></li>
+                    <li><a href="/symptom">症状チェック</a></li>
+                    <li><a href="/hospital" class="active">病院検索</a></li>
+                    <li><a href="/news">健康ニュース</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="nearby-hospitals">
+                <h2>近くの病院</h2>
+                
+                <div class="location-info">
+                    <div class="current-location">
+                        <i class="icon-location"></i>
+                        <span id="current-location-text">現在地を取得中...</span>
+                        <button onclick="getCurrentLocation()" class="btn btn-sm">位置情報を更新</button>
+                    </div>
+                </div>
+
+                <div class="search-filters">
+                    <div class="filter-group">
+                        <label for="specialty-filter">診療科で絞り込み:</label>
+                        <select id="specialty-filter" onchange="filterHospitals()">
+                            <option value="">すべて</option>
+                            <option value="internal">内科</option>
+                            <option value="surgery">外科</option>
+                            <option value="pediatrics">小児科</option>
+                            <option value="gynecology">婦人科</option>
+                            <option value="orthopedics">整形外科</option>
+                            <option value="dermatology">皮膚科</option>
+                            <option value="ophthalmology">眼科</option>
+                            <option value="ent">耳鼻咽喉科</option>
+                            <option value="psychiatry">精神科</option>
+                            <option value="emergency">救急科</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="distance-filter">距離:</label>
+                        <select id="distance-filter" onchange="filterHospitals()">
+                            <option value="1">1km以内</option>
+                            <option value="3" selected>3km以内</option>
+                            <option value="5">5km以内</option>
+                            <option value="10">10km以内</option>
+                            <option value="20">20km以内</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="emergency-only" onchange="filterHospitals()">
+                            救急対応のみ
+                        </label>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="open-now" onchange="filterHospitals()">
+                            現在営業中のみ
+                        </label>
+                    </div>
+                </div>
+
+                <div class="view-toggle">
+                    <button onclick="showListView()" class="btn btn-sm active" id="list-btn">リスト表示</button>
+                    <button onclick="showMapView()" class="btn btn-sm" id="map-btn">地図表示</button>
+                </div>
+
+                <!-- リスト表示 -->
+                <div id="hospitals-list" class="hospitals-container">
+                    {{if .Hospitals}}
+                    {{range .Hospitals}}
+                    <div class="hospital-card" data-hospital-id="{{.ID}}" data-specialty="{{.Specialties}}" data-distance="{{.Distance}}" data-emergency="{{.EmergencyServices}}" data-open="{{.IsOpen}}">
+                        <div class="hospital-header">
+                            <h3><a href="/hospital/{{.ID}}">{{.Name}}</a></h3>
+                            <div class="hospital-status">
+                                {{if .IsOpen}}
+                                <span class="status-open">営業中</span>
+                                {{else}}
+                                <span class="status-closed">閉院中</span>
+                                {{end}}
+                                {{if .EmergencyServices}}
+                                <span class="emergency-badge">救急対応</span>
+                                {{end}}
+                            </div>
+                        </div>
+                        
+                        <div class="hospital-info">
+                            <div class="hospital-details">
+                                <p class="address">
+                                    <i class="icon-location"></i>
+                                    {{.Address}}
+                                </p>
+                                
+                                <p class="distance">
+                                    <i class="icon-distance"></i>
+                                    約{{.Distance}}km
+                                </p>
+                                
+                                <p class="phone">
+                                    <i class="icon-phone"></i>
+                                    <a href="tel:{{.PhoneNumber}}">{{.PhoneNumber}}</a>
+                                </p>
+                                
+                                <div class="rating">
+                                    <div class="stars">
+                                        {{range .StarRating}}★{{end}}{{range .EmptyStars}}☆{{end}}
+                                    </div>
+                                    <span class="rating-text">{{.Rating}} ({{.TotalReviews}}件)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="hospital-specialties">
+                                <h4>診療科:</h4>
+                                <div class="specialty-tags">
+                                    {{range .Specialties}}
+                                    <span class="specialty-tag">{{.Name}}</span>
+                                    {{end}}
+                                </div>
+                            </div>
+                            
+                            <div class="hospital-hours">
+                                <h4>診療時間:</h4>
+                                <div class="hours-info">
+                                    {{if .TodayHours}}
+                                    <p><strong>本日:</strong> {{.TodayHours}}</p>
+                                    {{end}}
+                                    {{if .NextOpenHours}}
+                                    <p><strong>次回営業:</strong> {{.NextOpenHours}}</p>
+                                    {{end}}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="hospital-actions">
+                            <a href="/hospital/{{.ID}}" class="btn btn-primary">詳細を見る</a>
+                            <button onclick="showDirections({{.Latitude}}, {{.Longitude}})" class="btn btn-secondary">道順</button>
+                            <button onclick="callHospital('{{.PhoneNumber}}')" class="btn btn-outline">電話する</button>
+                        </div>
+                    </div>
+                    {{end}}
+                    {{else}}
+                    <div class="no-results">
+                        <p>近くに病院が見つかりませんでした。</p>
+                        <p>検索範囲を広げてお試しください。</p>
+                        <button onclick="expandSearch()" class="btn btn-primary">検索範囲を広げる</button>
+                    </div>
+                    {{end}}
+                </div>
+
+                <!-- 地図表示 -->
+                <div id="hospitals-map" class="map-container" style="display: none;">
+                    <div id="map" style="height: 600px; width: 100%;"></div>
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <span class="marker-open"></span> 営業中
+                        </div>
+                        <div class="legend-item">
+                            <span class="marker-closed"></span> 閉院中
+                        </div>
+                        <div class="legend-item">
+                            <span class="marker-emergency"></span> 救急対応
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 症状チェッカー. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        let userLocation = null;
+        let allHospitals = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            getCurrentLocation();
+            loadHospitals();
+        });
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                document.getElementById('current-location-text').textContent = '位置情報を取得中...';
+                
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        
+                        // 住所を取得（逆ジオコーディング）
+                        reverseGeocode(userLocation.lat, userLocation.lng);
+                        
+                        // 病院リストを更新
+                        loadNearbyHospitals();
+                    },
+                    function(error) {
+                        console.error('位置情報の取得に失敗しました:', error);
+                        document.getElementById('current-location-text').textContent = '位置情報の取得に失敗しました';
+                    }
+                );
+            } else {
+                document.getElementById('current-location-text').textContent = '位置情報がサポートされていません';
+            }
+        }
+
+        function reverseGeocode(lat, lng) {
+            // 実際の実装では、Google Maps APIなどを使用
+            document.getElementById('current-location-text').textContent = `緯度: ${lat.toFixed(4)}, 経度: ${lng.toFixed(4)}`;
+        }
+
+        function loadNearbyHospitals() {
+            if (!userLocation) return;
+            
+            const distance = document.getElementById('distance-filter').value;
+            
+            fetch(`/api/v1/hospitals/nearby?lat=${userLocation.lat}&lng=${userLocation.lng}&distance=${distance}`)
+                .then(response => response.json())
+                .then(data => {
+                    allHospitals = data.hospitals || [];
+                    displayHospitals(allHospitals);
+                })
+                .catch(error => {
+                    console.error('病院データの取得に失敗しました:', error);
+                });
+        }
+
+        function filterHospitals() {
+            const specialty = document.getElementById('specialty-filter').value;
+            const distance = parseFloat(document.getElementById('distance-filter').value);
+            const emergencyOnly = document.getElementById('emergency-only').checked;
+            const openNow = document.getElementById('open-now').checked;
+
+            const filtered = allHospitals.filter(hospital => {
+                // 診療科フィルター
+                if (specialty && !hospital.specialties.some(s => s.code === specialty)) {
+                    return false;
+                }
+                
+                // 距離フィルター
+                if (hospital.distance > distance) {
+                    return false;
+                }
+                
+                // 救急対応フィルター
+                if (emergencyOnly && !hospital.emergencyServices) {
+                    return false;
+                }
+                
+                // 営業時間フィルター
+                if (openNow && !hospital.isOpen) {
+                    return false;
+                }
+                
+                return true;
+            });
+
+            displayHospitals(filtered);
+        }
+
+        function displayHospitals(hospitals) {
+            const container = document.getElementById('hospitals-list');
+            
+            if (hospitals.length === 0) {
+                container.innerHTML = `
+                    <div class="no-results">
+                        <p>条件に合う病院が見つかりませんでした。</p>
+                        <p>フィルター条件を変更してお試しください。</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 病院カードのHTMLを動的生成
+            // （実際の実装では、テンプレートエンジンを使用）
+        }
+
+        function showListView() {
+            document.getElementById('hospitals-list').style.display = 'block';
+            document.getElementById('hospitals-map').style.display = 'none';
+            document.getElementById('list-btn').classList.add('active');
+            document.getElementById('map-btn').classList.remove('active');
+        }
+
+        function showMapView() {
+            document.getElementById('hospitals-list').style.display = 'none';
+            document.getElementById('hospitals-map').style.display = 'block';
+            document.getElementById('list-btn').classList.remove('active');
+            document.getElementById('map-btn').classList.add('active');
+            
+            // 地図を初期化（Google Maps APIなどを使用）
+            initMap();
+        }
+
+        function initMap() {
+            // Google Maps APIの実装
+            console.log('地図を初期化中...');
+        }
+
+        function showDirections(lat, lng) {
+            if (userLocation) {
+                const url = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${lat},${lng}`;
+                window.open(url, '_blank');
+            } else {
+                const url = `https://www.google.com/maps/search/${lat},${lng}`;
+                window.open(url, '_blank');
+            }
+        }
+
+        function callHospital(phoneNumber) {
+            window.location.href = `tel:${phoneNumber}`;
+        }
+
+        function expandSearch() {
+            const distanceFilter = document.getElementById('distance-filter');
+            const currentDistance = parseInt(distanceFilter.value);
+            
+            if (currentDistance < 20) {
+                const nextDistance = currentDistance === 1 ? 3 : currentDistance === 3 ? 5 : currentDistance === 5 ? 10 : 20;
+                distanceFilter.value = nextDistance;
+                filterHospitals();
+            }
+        }
+    </script>
+</body>
+</html>
