@@ -1,0 +1,9 @@
+@echo off
+echo Checking Docker services...
+docker ps -a
+echo.
+echo Checking frontend logs...
+docker-compose -f docker-compose.dev.yml logs frontend
+echo.
+echo Checking if port 8080 is accessible...
+curl -I http://localhost:8080 || echo "Port 8080 not accessible"
