@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, Float, Time
+from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, Float, Time, DateTime
 from sqlalchemy.orm import relationship
 from .base import Base, BaseModel
 
@@ -39,6 +39,8 @@ class Hospital(Base, BaseModel):
     wheelchair_accessible = Column(Boolean, default=True)
     
     is_active = Column(Boolean, default=True)
+    data_source = Column(String(50), default="manual")  # manual, scraped, api
+    last_updated = Column(DateTime, nullable=True)  # スクレイピング更新日時
 
     # Relationships
     specialties = relationship("HospitalSpecialty", back_populates="hospital")

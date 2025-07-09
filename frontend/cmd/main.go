@@ -109,6 +109,12 @@ func setupRoutes(router *gin.Engine, h *handlers.Handlers) {
 		newsGroup.GET("/", h.NewsPage)
 	}
 
+	// 管理画面
+	adminGroup := router.Group("/admin")
+	{
+		adminGroup.GET("/", h.AdminPage)
+	}
+
 	// API プロキシ（バックエンドAPIへのプロキシ）
 	apiGroup := router.Group("/api/v1")
 	{

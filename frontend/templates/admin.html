@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理画面 - 症状チェッカー</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">症状チェッカー 管理画面</h1>
+            <div class="space-x-4">
+                <a href="/" class="hover:text-blue-200">ホーム</a>
+                <a href="/admin" class="hover:text-blue-200 font-semibold">管理画面</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <!-- データ統計 -->
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">病院データ</h3>
+                    <div id="hospital-stats" class="space-y-2">
+                        <div class="loading">読み込み中...</div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">ニュースデータ</h3>
+                    <div id="news-stats" class="space-y-2">
+                        <div class="loading">読み込み中...</div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">アラートデータ</h3>
+                    <div id="alert-stats" class="space-y-2">
+                        <div class="loading">読み込み中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- スクレイピング管理 -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+                <h2 class="text-2xl font-bold mb-6">データスクレイピング</h2>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- 病院データスクレイピング -->
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">病院データ</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="form-label">対象都道府県</label>
+                                <select id="prefecture-select" class="form-input" multiple size="4">
+                                    <option value="東京都" selected>東京都</option>
+                                    <option value="神奈川県">神奈川県</option>
+                                    <option value="埼玉県">埼玉県</option>
+                                    <option value="千葉県">千葉県</option>
+                                    <option value="大阪府">大阪府</option>
+                                    <option value="愛知県">愛知県</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <button id="scrape-hospitals-test" class="btn-secondary w-full">
+                                    テストスクレイピング（少量）
+                                </button>
+                                <button id="scrape-hospitals-full" class="btn-primary w-full">
+                                    本格スクレイピング（バックグラウンド）
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ニュースデータスクレイピング -->
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">健康ニュース</h3>
+                        <div class="space-y-4">
+                            <div class="text-sm text-gray-600">
+                                <p>対象サイト:</p>
+                                <ul class="list-disc list-inside mt-2">
+                                    <li>厚生労働省</li>
+                                    <li>国立感染症研究所</li>
+                                    <li>日本医師会</li>
+                                    <li>WHO</li>
+                                    <li>CDC</li>
+                                </ul>
+                            </div>
+                            <div class="space-y-2">
+                                <button id="scrape-news-test" class="btn-secondary w-full">
+                                    テストスクレイピング
+                                </button>
+                                <button id="scrape-news-full" class="btn-primary w-full">
+                                    本格スクレイピング（バックグラウンド）
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 全データスクレイピング -->
+                <div class="mt-8 text-center">
+                    <button id="scrape-all-data" class="btn-success text-lg px-8 py-3">
+                        全データスクレイピング実行
+                    </button>
+                </div>
+            </div>
+
+            <!-- スクレイピング結果 -->
+            <div id="scraping-results" class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold mb-6">スクレイピング結果</h2>
+                <div id="results-content" class="space-y-4">
+                    <p class="text-gray-600">スクレイピングを実行すると結果がここに表示されます。</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>

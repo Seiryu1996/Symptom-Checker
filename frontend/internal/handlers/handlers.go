@@ -227,6 +227,12 @@ func (h *Handlers) NewsPage(c *gin.Context) {
 	})
 }
 
+func (h *Handlers) AdminPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "admin.html", gin.H{
+		"title": "管理画面",
+	})
+}
+
 func (h *Handlers) APIProxy(c *gin.Context) {
 	path := c.Param("path")
 	method := c.Request.Method
